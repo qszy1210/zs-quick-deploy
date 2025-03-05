@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <style>
     body {
-      width: 160px;
+      width: 300px;
       padding: 10px;
     }
     button {
-      width: 80%;
+      width: 100%;
       margin: 0 auto;
-      padding: 6px;
+      padding: 8px;
       background-color: #007bff;
       color: white;
       border: none;
@@ -21,10 +21,24 @@
     button:hover {
       background-color: #0056b3;
     }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    .building {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+    .completed {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
   </style>
 </head>
 <body>
-  <button id="triggerBuild">触发Jenkins构建</button>
+  <button id="triggerBuild">触发构建</button>
+  <div id="buildStatus" class="status"></div>
   <script src="popup.js"></script>
 </body>
 </html>
