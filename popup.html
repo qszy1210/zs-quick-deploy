@@ -9,7 +9,7 @@
     }
     button {
       width: 100%;
-      margin: 0 auto;
+      margin: 5px auto;
       padding: 8px;
       background-color: #007bff;
       color: white;
@@ -20,6 +20,12 @@
     }
     button:hover {
       background-color: #0056b3;
+    }
+    #deployLink {
+      background-color: #28a745;
+    }
+    #deployLink:hover {
+      background-color: #1e7e34;
     }
     .status {
       margin-top: 10px;
@@ -34,11 +40,31 @@
       background-color: #e8f5e9;
       color: #2e7d32;
     }
+    .links {
+      margin-top: 10px;
+    }
+    .links a {
+      display: block;
+      margin: 5px 0;
+      padding: 6px 8px;
+      background-color: #f8f9fa;
+      color: #007bff;
+      text-decoration: none;
+      border-radius: 4px;
+      border: 1px solid #dee2e6;
+      font-size: 12px;
+    }
+    .links a:hover {
+      background-color: #e9ecef;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
   <button id="triggerBuild">触发构建</button>
+  <button id="deployLink">跳转到部署页面</button>
   <div id="buildStatus" class="status"></div>
+  <div id="buildLinks" class="links"></div>
   <script src="popup.js"></script>
 </body>
 </html>
