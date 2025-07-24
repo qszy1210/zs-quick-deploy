@@ -96,9 +96,8 @@ async function checkBuildStatus() {
       });
       
     } else {
-      buildStatus.textContent = '没有进行中的任务';
-      buildStatus.className = 'status completed';
-      buildLinks.innerHTML = '';
+      // 没有进行中的任务，显示最新的部署状态
+      showLatestBuildStatus(buildingRows);
       clearInterval(statusCheckInterval);
     }
   } catch (error) {
@@ -107,4 +106,87 @@ async function checkBuildStatus() {
     buildLinks.innerHTML = '';
     clearInterval(statusCheckInterval);
   }
+}
+
+function showLatestBuildStatus(buildRows) {
+  const buildStatus = document.getElementById('buildStatus');
+  const buildLinks = document.getElementById('buildLinks');
+  
+  if (!buildRows || buildRows.length === 0) {
+    buildStatus.textContent = '没有找到构建记录';
+    buildStatus.className = 'status';
+    buildLinks.innerHTML = '';
+    return;
+  }
+
+  // 获取第一行（最新的构建记录）
+  const latestRow = buildRows[0];
+  
+  // 提取构建状态
+  const statusIcon = latestRow.querySelector('.build-status-icon__wrapper svg:last-child use');
+  const buildLink = latestRow.querySelector('a.build-link.display-name');
+  const consoleLink = latestRow.querySelector('a.build-status-link');
+  const timeElement = latestRow.querySelector('.pane.build-details a');
+  
+  if (!buildLink) {
+    buildStatus.textContent = '无法解析构建信息';
+    buildStatus.className = 'status';
+    buildLinks.innerHTML = '';
+    return;
+  }
+  
+  const buildNumber = buildLink.textContent.trim();
+  const buildUrl = buildLink.getAttribute('href');
+  const consoleUrl = consoleLink ? consoleLink.getAttribute('href') : null;
+  const buildTime = timeElement ? timeElement.textContent.trim().split('\n')[0] : '';
+  
+  // 判断构建状态
+  let statusText = '';
+  let statusClass = 'status';
+  
+  if (statusIcon) {
+    const href = statusIcon.getAttribute('href');
+    if (href && href.includes('last-successful')) {
+      statusText = `最新部署成功 ${buildNumber}`;
+      statusClass = 'status success';
+    } else if (href && href.includes('last-failed')) {
+      statusText = `最新部署失败 ${buildNumber}`;
+      statusClass = 'status failed';
+    } else {
+      statusText = `最新部署状态 ${buildNumber}`;
+      statusClass = 'status';
+    }
+  } else {
+    statusText = `最新部署记录 ${buildNumber}`;
+    statusClass = 'status';
+  }
+  
+  buildStatus.textContent = statusText;
+  buildStatus.className = statusClass;
+  
+  // 生成跳转链接
+  const baseUrl = 'http://192.168.1.104:8080';
+  let linksHtml = '';
+  
+  if (consoleUrl) {
+    linksHtml += `<a href="${baseUrl}${consoleUrl}" target="_blank">查看控制台输出</a>`;
+  }
+  
+  if (buildUrl) {
+    linksHtml += `<a href="${baseUrl}${buildUrl}" target="_blank">查看构建详情</a>`;
+  }
+  
+  if (buildTime) {
+    linksHtml += `<div class="build-time">${buildTime}</div>`;
+  }
+  
+  buildLinks.innerHTML = linksHtml;
+  
+  // 为链接添加点击事件
+  buildLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      chrome.tabs.create({ url: link.href });
+    });
+  });
 }
