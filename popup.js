@@ -1,5 +1,79 @@
 let statusCheckInterval;
 
+// 将时间字符串增加8小时
+function adjustTimeBy8Hours(timeString) {
+  if (!timeString) return timeString;
+  
+  try {
+    // 尝试匹配相对时间格式，如 "2 min 前", "1 hr 前", "3 days 前" 等
+    const relativeTimeMatch = timeString.match(/^(\d+)\s*(min|hr|day|month|year)s?\s*前$/);
+    if (relativeTimeMatch) {
+      // 相对时间不需要调整
+      return timeString;
+    }
+    
+    // 尝试匹配中文格式：2025年8月1日 上午5:35 或 2025年8月1日 下午13:35
+    const chineseTimeMatch = timeString.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日\s+(上午|下午)(\d{1,2}):(\d{2})$/);
+    if (chineseTimeMatch) {
+      const [, year, month, day, period, hour, minute] = chineseTimeMatch;
+      let hour24 = parseInt(hour);
+      
+      // 转换为24小时制
+      if (period === '下午' && hour24 !== 12) {
+        hour24 += 12;
+      } else if (period === '上午' && hour24 === 12) {
+        hour24 = 0;
+      }
+      
+      const originalDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour24, parseInt(minute));
+      const adjustedDate = new Date(originalDate.getTime() + 8 * 60 * 60 * 1000);
+      
+      // 格式化为原来的中文格式
+      const adjustedHour = adjustedDate.getHours();
+      const adjustedMinute = adjustedDate.getMinutes();
+      const adjustedPeriod = adjustedHour < 12 ? '上午' : '下午';
+      const displayHour = adjustedHour === 0 ? 12 : (adjustedHour > 12 ? adjustedHour - 12 : adjustedHour);
+      
+      return `${adjustedDate.getFullYear()}年${adjustedDate.getMonth() + 1}月${adjustedDate.getDate()}日 ${adjustedPeriod}${displayHour}:${adjustedMinute.toString().padStart(2, '0')}`;
+    }
+    
+    // 尝试匹配绝对时间格式，如 "2024-08-01 15:30:45"
+    const absoluteTimeMatch = timeString.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})$/);
+    if (absoluteTimeMatch) {
+      const originalDate = new Date(absoluteTimeMatch[1]);
+      if (!isNaN(originalDate.getTime())) {
+        const adjustedDate = new Date(originalDate.getTime() + 8 * 60 * 60 * 1000);
+        return adjustedDate.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }).replace(/\//g, '-');
+      }
+    }
+    
+    // 尝试解析其他格式
+    const parsedDate = new Date(timeString);
+    if (!isNaN(parsedDate.getTime())) {
+      const adjustedDate = new Date(parsedDate.getTime() + 8 * 60 * 60 * 1000);
+      // 保持原来的中文格式输出
+      const hour = adjustedDate.getHours();
+      const period = hour < 12 ? '上午' : '下午';
+      const displayHour = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      
+      return `${adjustedDate.getFullYear()}年${adjustedDate.getMonth() + 1}月${adjustedDate.getDate()}日 ${period}${displayHour}:${adjustedDate.getMinutes().toString().padStart(2, '0')}`;
+    }
+    
+    // 如果无法解析，返回原字符串
+    return timeString;
+  } catch (error) {
+    console.error('时间解析错误:', error);
+    return timeString;
+  }
+}
+
 // 页面加载完成时立即开始检查状态
 document.addEventListener('DOMContentLoaded', () => {
   startStatusCheck();
@@ -138,7 +212,7 @@ function showLatestBuildStatus(buildRows) {
   const buildNumber = buildLink.textContent.trim();
   const buildUrl = buildLink.getAttribute('href');
   const consoleUrl = consoleLink ? consoleLink.getAttribute('href') : null;
-  const buildTime = timeElement ? timeElement.textContent.trim().split('\n')[0] : '';
+  const buildTime = timeElement ? adjustTimeBy8Hours(timeElement.textContent.trim().split('\n')[0]) : '';
   
   // 判断构建状态
   let statusText = '';
