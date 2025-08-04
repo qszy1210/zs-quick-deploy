@@ -140,10 +140,15 @@ async function checkBuildStatus() {
           const consoleLink = row.querySelector('a.build-status-link');
           const consoleUrl = consoleLink ? consoleLink.getAttribute('href') : null;
           
+          // 提取构建开始时间并应用8小时调整
+          const timeElement = row.querySelector('.pane.build-details a');
+          const buildTime = timeElement ? adjustTimeBy8Hours(timeElement.textContent.trim().split('\n')[0]) : '';
+          
           activeBuild = {
             number: buildNumber,
             buildUrl: buildUrl,
-            consoleUrl: consoleUrl
+            consoleUrl: consoleUrl,
+            buildTime: buildTime
           };
           break;
         }
@@ -151,15 +156,24 @@ async function checkBuildStatus() {
     }
 
     if (activeBuild) {
-      buildStatus.textContent = `正在构建中... ${activeBuild.number}`;
+      // 在构建状态文本中显示构建时间（如果有的话）
+      const buildTimeText = activeBuild.buildTime ? ` (${activeBuild.buildTime})` : '';
+      buildStatus.textContent = `正在构建中... ${activeBuild.number}${buildTimeText}`;
       buildStatus.className = 'status building';
       
       // 生成跳转链接
       const baseUrl = 'http://192.168.1.104:8080';
-      buildLinks.innerHTML = `
+      let linksHtml = `
         <a href="${baseUrl}${activeBuild.consoleUrl}" target="_blank">查看控制台输出</a>
         <a href="${baseUrl}${activeBuild.buildUrl}" target="_blank">查看构建详情</a>
       `;
+      
+      // 在链接区域显示详细的构建开始时间
+      if (activeBuild.buildTime) {
+        linksHtml += `<div class="build-time">开始时间: ${activeBuild.buildTime}</div>`;
+      }
+      
+      buildLinks.innerHTML = linksHtml;
       
       // 为链接添加点击事件
       buildLinks.querySelectorAll('a').forEach(link => {
