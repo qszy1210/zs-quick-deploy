@@ -18,7 +18,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 async function handleBuildTrigger() {
   try {
     const tab = await chrome.tabs.create({
-      url: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/build?delay=0sec'
+      url: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/build?delay=0sec',
+      active: false
     });
 
     // 监听页面加载状态
