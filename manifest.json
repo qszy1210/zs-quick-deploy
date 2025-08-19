@@ -14,6 +14,9 @@
     "http://192.168.1.104:8080/*"
   ],
   "commands": {
+    "_execute_action": {
+      "description": "激活插件"
+    },
     "trigger-build": {
       "suggested_key": {
         "default": "Ctrl+U",
