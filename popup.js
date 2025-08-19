@@ -1,43 +1,47 @@
-let statusCheckInterval;
 
-// 将时间字符串增加8小时
+
+let statusCheckIntervals = {};
+let currentEnv = 'dev';
+
+const environments = {
+  dev: {
+    name: 'Dev',
+    buildUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/build?delay=0sec',
+    jobUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/',
+    historyUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/buildHistory/ajax'
+  },
+  test: {
+    name: 'Test',
+    buildUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83/job/zssy-bft-web-test/build?delay=0sec',
+    jobUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83/job/zssy-bft-web-test/',
+    historyUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83/job/zssy-bft-web-test/buildHistory/ajax'
+  }
+};
+
 function adjustTimeBy8Hours(timeString) {
   if (!timeString) return timeString;
-  
   try {
-    // 尝试匹配相对时间格式，如 "2 min 前", "1 hr 前", "3 days 前" 等
     const relativeTimeMatch = timeString.match(/^(\d+)\s*(min|hr|day|month|year)s?\s*前$/);
     if (relativeTimeMatch) {
-      // 相对时间不需要调整
       return timeString;
     }
-    
-    // 尝试匹配中文格式：2025年8月1日 上午5:35 或 2025年8月1日 下午13:35
     const chineseTimeMatch = timeString.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日\s+(上午|下午)(\d{1,2}):(\d{2})$/);
     if (chineseTimeMatch) {
       const [, year, month, day, period, hour, minute] = chineseTimeMatch;
       let hour24 = parseInt(hour);
-      
-      // 转换为24小时制
       if (period === '下午' && hour24 !== 12) {
         hour24 += 12;
       } else if (period === '上午' && hour24 === 12) {
         hour24 = 0;
       }
-      
       const originalDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour24, parseInt(minute));
       const adjustedDate = new Date(originalDate.getTime() + 8 * 60 * 60 * 1000);
-      
-      // 格式化为原来的中文格式
       const adjustedHour = adjustedDate.getHours();
       const adjustedMinute = adjustedDate.getMinutes();
       const adjustedPeriod = adjustedHour < 12 ? '上午' : '下午';
       const displayHour = adjustedHour === 0 ? 12 : (adjustedHour > 12 ? adjustedHour - 12 : adjustedHour);
-      
       return `${adjustedDate.getFullYear()}年${adjustedDate.getMonth() + 1}月${adjustedDate.getDate()}日 ${adjustedPeriod}${displayHour}:${adjustedMinute.toString().padStart(2, '0')}`;
     }
-    
-    // 尝试匹配绝对时间格式，如 "2024-08-01 15:30:45"
     const absoluteTimeMatch = timeString.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})$/);
     if (absoluteTimeMatch) {
       const originalDate = new Date(absoluteTimeMatch[1]);
@@ -53,20 +57,14 @@ function adjustTimeBy8Hours(timeString) {
         }).replace(/\//g, '-');
       }
     }
-    
-    // 尝试解析其他格式
     const parsedDate = new Date(timeString);
     if (!isNaN(parsedDate.getTime())) {
       const adjustedDate = new Date(parsedDate.getTime() + 8 * 60 * 60 * 1000);
-      // 保持原来的中文格式输出
       const hour = adjustedDate.getHours();
       const period = hour < 12 ? '上午' : '下午';
       const displayHour = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-      
       return `${adjustedDate.getFullYear()}年${adjustedDate.getMonth() + 1}月${adjustedDate.getDate()}日 ${period}${displayHour}:${adjustedDate.getMinutes().toString().padStart(2, '0')}`;
     }
-    
-    // 如果无法解析，返回原字符串
     return timeString;
   } catch (error) {
     console.error('时间解析错误:', error);
@@ -74,132 +72,132 @@ function adjustTimeBy8Hours(timeString) {
   }
 }
 
-// 页面加载完成时立即开始检查状态
 document.addEventListener('DOMContentLoaded', () => {
-  startStatusCheck();
-});
+  const environmentsContainer = document.getElementById('environments');
+  Object.keys(environments).forEach(envKey => {
+    const env = environments[envKey];
+    const envContainer = document.createElement('div');
+    envContainer.className = 'environment-container';
 
-document.getElementById('triggerBuild').addEventListener('click', () => {
-  chrome.runtime.sendMessage({ action: 'triggerBuild' }, (response) => {
-    if (response && response.status === 'started') {
-      console.log('构建触发请求已发送');
-    }
+    const title = document.createElement('h3');
+    title.textContent = `${env.name} 环境`;
+    envContainer.appendChild(title);
+
+    const triggerButton = document.createElement('button');
+    triggerButton.id = `triggerBuild-${envKey}`;
+    triggerButton.className = 'trigger-build-button';
+    triggerButton.textContent = `触发${env.name}环境构建`;
+    envContainer.appendChild(triggerButton);
+
+    const deployLinkButton = document.createElement('button');
+    deployLinkButton.id = `deployLink-${envKey}`;
+    deployLinkButton.textContent = `跳转到${env.name}部署页面`;
+    envContainer.appendChild(deployLinkButton);
+
+    const buildStatus = document.createElement('div');
+    buildStatus.id = `buildStatus-${envKey}`;
+    buildStatus.className = 'status';
+    envContainer.appendChild(buildStatus);
+
+    const buildLinks = document.createElement('div');
+    buildLinks.id = `buildLinks-${envKey}`;
+    buildLinks.className = 'links';
+    envContainer.appendChild(buildLinks);
+
+    environmentsContainer.appendChild(envContainer);
+
+    triggerButton.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'triggerBuild', environment: envKey });
+      startStatusCheck(envKey);
+    });
+
+    deployLinkButton.addEventListener('click', () => {
+      chrome.tabs.create({ url: env.jobUrl });
+    });
+  });
+
+  Object.keys(environments).forEach(envKey => {
+    startStatusCheck(envKey);
   });
 });
 
-document.getElementById('deployLink').addEventListener('click', () => {
-  chrome.tabs.create({
-    url: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/'
-  });
-});
-
-function startStatusCheck() {
-  const buildStatus = document.getElementById('buildStatus');
-
-  // 清除之前的定时器
-  if (statusCheckInterval) {
-    clearInterval(statusCheckInterval);
+function startStatusCheck(env) {
+  if (statusCheckIntervals[env]) {
+    clearInterval(statusCheckIntervals[env]);
   }
-
-  // 立即执行第一次状态检查
-  checkBuildStatus();
-
-  // 每5秒检查一次构建状态
-  statusCheckInterval = setInterval(checkBuildStatus, 5000);
+  checkBuildStatus(env);
+  statusCheckIntervals[env] = setInterval(() => checkBuildStatus(env), 5000);
 }
 
-async function checkBuildStatus() {
-  const buildStatus = document.getElementById('buildStatus');
-  const buildLinks = document.getElementById('buildLinks');
-  
-  try {
-    const response = await fetch('http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/buildHistory/ajax');
-    const html = await response.text();
+async function checkBuildStatus(env) {
+  const buildStatus = document.getElementById(`buildStatus-${env}`);
+  const buildLinks = document.getElementById(`buildLinks-${env}`);
+  const envConfig = environments[env];
 
-    // 解析HTML查找正在构建的任务
+  try {
+    const response = await fetch(envConfig.historyUrl);
+    const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-    
-    // 查找包含正在构建状态的行
     const buildingRows = doc.querySelectorAll('tr.build-row');
     let activeBuild = null;
-    
+
     for (const row of buildingRows) {
-      // 检查是否包含正在构建的图标
       const progressIcon = row.querySelector('use[href*="build-status-in-progress"]');
       const animatedIcon = row.querySelector('.icon-aborted-anime');
-      
       if (progressIcon || animatedIcon) {
-        // 提取构建编号
         const buildLink = row.querySelector('a.build-link.display-name');
         if (buildLink) {
           const buildNumber = buildLink.textContent.trim();
           const buildUrl = buildLink.getAttribute('href');
-          
-          // 提取控制台链接
           const consoleLink = row.querySelector('a.build-status-link');
           const consoleUrl = consoleLink ? consoleLink.getAttribute('href') : null;
-          
-          // 提取构建开始时间并应用8小时调整
           const timeElement = row.querySelector('.pane.build-details a');
           const buildTime = timeElement ? adjustTimeBy8Hours(timeElement.textContent.trim().split('\n')[0]) : '';
-          
-          activeBuild = {
-            number: buildNumber,
-            buildUrl: buildUrl,
-            consoleUrl: consoleUrl,
-            buildTime: buildTime
-          };
+          activeBuild = { number: buildNumber, buildUrl, consoleUrl, buildTime };
           break;
         }
       }
     }
 
     if (activeBuild) {
-      // 在构建状态文本中显示构建时间（如果有的话）
       const buildTimeText = activeBuild.buildTime ? ` (${activeBuild.buildTime})` : '';
       buildStatus.textContent = `正在构建中... ${activeBuild.number}${buildTimeText}`;
       buildStatus.className = 'status building';
-      
-      // 生成跳转链接
       const baseUrl = 'http://192.168.1.104:8080';
       let linksHtml = `
         <a href="${baseUrl}${activeBuild.consoleUrl}" target="_blank">查看控制台输出</a>
         <a href="${baseUrl}${activeBuild.buildUrl}" target="_blank">查看构建详情</a>
       `;
-      
-      // 在链接区域显示详细的构建开始时间
       if (activeBuild.buildTime) {
         linksHtml += `<div class="build-time">开始时间: ${activeBuild.buildTime}</div>`;
       }
-      
       buildLinks.innerHTML = linksHtml;
-      
-      // 为链接添加点击事件
       buildLinks.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', (e) => {
           e.preventDefault();
           chrome.tabs.create({ url: link.href });
         });
       });
-      
     } else {
-      // 没有进行中的任务，显示最新的部署状态
-      showLatestBuildStatus(buildingRows);
-      clearInterval(statusCheckInterval);
+      showLatestBuildStatus(buildingRows, env);
+      if (statusCheckIntervals[env]) {
+        clearInterval(statusCheckIntervals[env]);
+      }
     }
   } catch (error) {
-    console.error('检查构建状态失败:', error);
+    console.error(`检查${env}构建状态失败:`, error);
     buildStatus.textContent = '检查状态失败';
     buildLinks.innerHTML = '';
-    clearInterval(statusCheckInterval);
+    if (statusCheckIntervals[env]) {
+      clearInterval(statusCheckIntervals[env]);
+    }
   }
 }
 
-function showLatestBuildStatus(buildRows) {
-  const buildStatus = document.getElementById('buildStatus');
-  const buildLinks = document.getElementById('buildLinks');
-  
+function showLatestBuildStatus(buildRows, env) {
+  const buildStatus = document.getElementById(`buildStatus-${env}`);
+  const buildLinks = document.getElementById(`buildLinks-${env}`);
   if (!buildRows || buildRows.length === 0) {
     buildStatus.textContent = '没有找到构建记录';
     buildStatus.className = 'status';
@@ -207,31 +205,26 @@ function showLatestBuildStatus(buildRows) {
     return;
   }
 
-  // 获取第一行（最新的构建记录）
   const latestRow = buildRows[0];
-  
-  // 提取构建状态
   const statusIcon = latestRow.querySelector('.build-status-icon__wrapper svg:last-child use');
   const buildLink = latestRow.querySelector('a.build-link.display-name');
   const consoleLink = latestRow.querySelector('a.build-status-link');
   const timeElement = latestRow.querySelector('.pane.build-details a');
-  
+
   if (!buildLink) {
     buildStatus.textContent = '无法解析构建信息';
     buildStatus.className = 'status';
     buildLinks.innerHTML = '';
     return;
   }
-  
+
   const buildNumber = buildLink.textContent.trim();
   const buildUrl = buildLink.getAttribute('href');
   const consoleUrl = consoleLink ? consoleLink.getAttribute('href') : null;
   const buildTime = timeElement ? adjustTimeBy8Hours(timeElement.textContent.trim().split('\n')[0]) : '';
-  
-  // 判断构建状态
   let statusText = '';
   let statusClass = 'status';
-  
+
   if (statusIcon) {
     const href = statusIcon.getAttribute('href');
     if (href && href.includes('last-successful')) {
@@ -242,35 +235,25 @@ function showLatestBuildStatus(buildRows) {
       statusClass = 'status failed';
     } else {
       statusText = `最新部署状态 ${buildNumber}`;
-      statusClass = 'status';
     }
   } else {
     statusText = `最新部署记录 ${buildNumber}`;
-    statusClass = 'status';
   }
-  
+
   buildStatus.textContent = statusText;
   buildStatus.className = statusClass;
-  
-  // 生成跳转链接
   const baseUrl = 'http://192.168.1.104:8080';
   let linksHtml = '';
-  
   if (consoleUrl) {
     linksHtml += `<a href="${baseUrl}${consoleUrl}" target="_blank">查看控制台输出</a>`;
   }
-  
   if (buildUrl) {
     linksHtml += `<a href="${baseUrl}${buildUrl}" target="_blank">查看构建详情</a>`;
   }
-  
   if (buildTime) {
     linksHtml += `<div class="build-time">${buildTime}</div>`;
   }
-  
   buildLinks.innerHTML = linksHtml;
-  
-  // 为链接添加点击事件
   buildLinks.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -278,3 +261,15 @@ function showLatestBuildStatus(buildRows) {
     });
   });
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    Object.keys(environments).forEach(envKey => {
+      startStatusCheck(envKey);
+    });
+  } else {
+    Object.keys(statusCheckIntervals).forEach(envKey => {
+      clearInterval(statusCheckIntervals[envKey]);
+    });
+  }
+});
