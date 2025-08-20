@@ -3,7 +3,11 @@
   "name": "Jenkins Build Trigger",
   "version": "1.0",
   "description": "一键触发Jenkins构建",
-  "permissions": ["activeTab", "scripting", "tabs"],
+  "permissions": ["activeTab", "scripting", "tabs", "storage"],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "action": {
     "default_popup": "popup.html"
   },

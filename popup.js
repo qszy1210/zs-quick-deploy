@@ -1,9 +1,7 @@
-
-
 let statusCheckIntervals = {};
-let currentEnv = 'dev';
 
-const environments = {
+// Default settings, used if nothing is found in storage
+const defaultEnvironments = {
   dev: {
     name: 'Dev',
     buildUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/build?delay=0sec',
@@ -18,6 +16,8 @@ const environments = {
   }
 };
 
+let environments = {};
+
 function adjustTimeBy8Hours(timeString) {
   if (!timeString) return timeString;
   try {
@@ -25,6 +25,7 @@ function adjustTimeBy8Hours(timeString) {
     if (relativeTimeMatch) {
       return timeString;
     }
+
     const chineseTimeMatch = timeString.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日\s+(上午|下午)(\d{1,2}):(\d{2})$/);
     if (chineseTimeMatch) {
       const [, year, month, day, period, hour, minute] = chineseTimeMatch;
@@ -42,6 +43,7 @@ function adjustTimeBy8Hours(timeString) {
       const displayHour = adjustedHour === 0 ? 12 : (adjustedHour > 12 ? adjustedHour - 12 : adjustedHour);
       return `${adjustedDate.getFullYear()}年${adjustedDate.getMonth() + 1}月${adjustedDate.getDate()}日 ${adjustedPeriod}${displayHour}:${adjustedMinute.toString().padStart(2, '0')}`;
     }
+
     const absoluteTimeMatch = timeString.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})$/);
     if (absoluteTimeMatch) {
       const originalDate = new Date(absoluteTimeMatch[1]);
@@ -57,6 +59,7 @@ function adjustTimeBy8Hours(timeString) {
         }).replace(/\//g, '-');
       }
     }
+
     const parsedDate = new Date(timeString);
     if (!isNaN(parsedDate.getTime())) {
       const adjustedDate = new Date(parsedDate.getTime() + 8 * 60 * 60 * 1000);
@@ -65,6 +68,7 @@ function adjustTimeBy8Hours(timeString) {
       const displayHour = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
       return `${adjustedDate.getFullYear()}年${adjustedDate.getMonth() + 1}月${adjustedDate.getDate()}日 ${period}${displayHour}:${adjustedDate.getMinutes().toString().padStart(2, '0')}`;
     }
+    
     return timeString;
   } catch (error) {
     console.error('时间解析错误:', error);
@@ -72,8 +76,12 @@ function adjustTimeBy8Hours(timeString) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function initializePopup() {
   const environmentsContainer = document.getElementById('environments');
+  if (!environmentsContainer) return;
+
+  environmentsContainer.innerHTML = ''; // Clear any previous content
+
   Object.keys(environments).forEach(envKey => {
     const env = environments[envKey];
     const envContainer = document.createElement('div');
@@ -107,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     environmentsContainer.appendChild(envContainer);
 
     triggerButton.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ action: 'triggerBuild', environment: envKey });
+      chrome.runtime.sendMessage({ action: 'triggerBuild', environment: envKey, environments: environments });
       startStatusCheck(envKey);
     });
 
@@ -118,6 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   Object.keys(environments).forEach(envKey => {
     startStatusCheck(envKey);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  chrome.storage.sync.get({ environments: defaultEnvironments }, (items) => {
+    environments = items.environments;
+    initializePopup();
   });
 });
 
@@ -164,7 +179,7 @@ async function checkBuildStatus(env) {
       const buildTimeText = activeBuild.buildTime ? ` (${activeBuild.buildTime})` : '';
       buildStatus.textContent = `正在构建中... ${activeBuild.number}${buildTimeText}`;
       buildStatus.className = 'status building';
-      const baseUrl = 'http://192.168.1.104:8080';
+      const baseUrl = new URL(envConfig.historyUrl).origin;
       let linksHtml = `
         <a href="${baseUrl}${activeBuild.consoleUrl}" target="_blank">查看控制台输出</a>
         <a href="${baseUrl}${activeBuild.buildUrl}" target="_blank">查看构建详情</a>
@@ -198,6 +213,7 @@ async function checkBuildStatus(env) {
 function showLatestBuildStatus(buildRows, env) {
   const buildStatus = document.getElementById(`buildStatus-${env}`);
   const buildLinks = document.getElementById(`buildLinks-${env}`);
+  const envConfig = environments[env];
   if (!buildRows || buildRows.length === 0) {
     buildStatus.textContent = '没有找到构建记录';
     buildStatus.className = 'status';
@@ -242,7 +258,7 @@ function showLatestBuildStatus(buildRows, env) {
 
   buildStatus.textContent = statusText;
   buildStatus.className = statusClass;
-  const baseUrl = 'http://192.168.1.104:8080';
+  const baseUrl = new URL(envConfig.historyUrl).origin;
   let linksHtml = '';
   if (consoleUrl) {
     linksHtml += `<a href="${baseUrl}${consoleUrl}" target="_blank">查看控制台输出</a>`;

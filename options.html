@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Quick Deploy Options</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1em;
+      width: 400px;
+    }
+    h1 {
+      font-size: 1.2em;
+    }
+    .environment {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 1em;
+      margin-bottom: 1em;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5em;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5em;
+      box-sizing: border-box;
+      margin-bottom: 1em;
+    }
+    button {
+      padding: 0.8em 1.2em;
+    }
+    #status {
+      margin-top: 1em;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <h1>Quick Deploy Settings</h1>
+
+  <div id="environments-config"></div>
+
+  <button id="save">Save</button>
+  <div id="status"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>
