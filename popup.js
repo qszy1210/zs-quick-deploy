@@ -68,7 +68,7 @@ function adjustTimeBy8Hours(timeString) {
       const displayHour = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
       return `${adjustedDate.getFullYear()}年${adjustedDate.getMonth() + 1}月${adjustedDate.getDate()}日 ${period}${displayHour}:${adjustedDate.getMinutes().toString().padStart(2, '0')}`;
     }
-    
+
     return timeString;
   } catch (error) {
     console.error('时间解析错误:', error);
@@ -141,7 +141,7 @@ function startStatusCheck(env) {
     clearInterval(statusCheckIntervals[env]);
   }
   checkBuildStatus(env);
-  statusCheckIntervals[env] = setInterval(() => checkBuildStatus(env), 5000);
+  statusCheckIntervals[env] = setInterval(() => checkBuildStatus(env), 3000);
 }
 
 async function checkBuildStatus(env) {
