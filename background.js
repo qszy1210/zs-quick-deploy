@@ -1,3 +1,4 @@
+
 // Default settings, used if nothing is found in storage
 const defaultEnvironments = {
   dev: {
@@ -65,28 +66,9 @@ async function handleBuildTrigger(envConfig) {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
-        return new Promise((resolve) => {
-          console.log('页面加载完成，开始查找按钮...');
-          const maxAttempts = 10;
-          let attempts = 0;
-          const findButton = setInterval(() => {
-            const button = document.querySelector('#yui-gen1-button');
-            attempts++;
-            if (button) {
-              console.log('找到按钮，准备点击...');
-              button.click();
-              console.log('按钮点击完成');
-              clearInterval(findButton);
-              resolve();
-            } else if (attempts >= maxAttempts) {
-              console.log('多次尝试后未找到按钮，放弃查找');
-              clearInterval(findButton);
-              resolve();
-            } else {
-              console.log(`第 ${attempts} 次尝试查找按钮...`);
-            }
-          }, 1000);
-        });
+        // This function is executed in the context of the Jenkins page
+        const button = document.querySelector('#yui-gen1-button');
+        if (button) button.click();
       }
     });
 
