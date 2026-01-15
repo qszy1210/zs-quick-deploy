@@ -3,25 +3,17 @@
 let environments = {};
 let statusCheckIntervals = {};
 
-// Default settings, used if nothing is found in storage
-const defaultEnvironments = {
-  dev: {
-    name: 'Dev',
-    buildUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/build?delay=0sec',
-    jobUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/',
-    historyUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/buildHistory/ajax'
-  },
-  test: {
-    name: 'Test',
-    buildUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83/job/zssy-bft-web-test/build?delay=0sec',
-    jobUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83/job/zssy-bft-web-test/',
-    historyUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83/job/zssy-bft-web-test/buildHistory/ajax'
-  }
-};
+// Configuration is loaded from config.js via loadConfig()
 
 document.addEventListener('DOMContentLoaded', () => {
-  chrome.storage.sync.get({ environments: defaultEnvironments }, (items) => {
-    environments = items.environments;
+  loadConfig((config) => {
+    // 过滤只显示 visible 为 true 的环境
+    environments = {};
+    for (const key in config.environments) {
+      if (config.environments[key].visible !== false) {
+        environments[key] = config.environments[key];
+      }
+    }
     initializePopup();
   });
 });
