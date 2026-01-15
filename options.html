@@ -7,44 +7,127 @@
     body {
       font-family: sans-serif;
       padding: 1em;
-      width: 400px;
+      width: 500px;
     }
     h1 {
       font-size: 1.2em;
+      margin-bottom: 1em;
+    }
+    .base-url-section {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 1em;
+      margin-bottom: 1.5em;
+      background-color: #f9f9f9;
+    }
+    .base-url-section label {
+      font-weight: bold;
+      margin-bottom: 0.5em;
     }
     .environment {
       border: 1px solid #ccc;
       border-radius: 4px;
       padding: 1em;
       margin-bottom: 1em;
+      background-color: #fff;
+    }
+    .environment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1em;
+      padding-bottom: 0.5em;
+      border-bottom: 1px solid #eee;
+    }
+    .environment-header h3 {
+      margin: 0;
+      font-size: 1em;
+    }
+    .delete-btn {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 0.4em 0.8em;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.9em;
+    }
+    .delete-btn:hover {
+      background-color: #c82333;
     }
     label {
       display: block;
       margin-bottom: 0.5em;
+      font-size: 0.9em;
     }
     input[type="text"] {
       width: 100%;
       padding: 0.5em;
       box-sizing: border-box;
       margin-bottom: 1em;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5em;
+    }
+    .checkbox-label input[type="checkbox"] {
+      margin-right: 0.5em;
+      width: auto;
+    }
+    .button-group {
+      display: flex;
+      gap: 1em;
+      margin-top: 1.5em;
     }
     button {
       padding: 0.8em 1.2em;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.95em;
+    }
+    #save {
+      background-color: #28a745;
+      color: white;
+      flex: 1;
+    }
+    #save:hover {
+      background-color: #218838;
+    }
+    #addEnv {
+      background-color: #007bff;
+      color: white;
+    }
+    #addEnv:hover {
+      background-color: #0056b3;
     }
     #status {
       margin-top: 1em;
       color: green;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <h1>Quick Deploy Settings</h1>
 
+  <div class="base-url-section">
+    <label for="baseUrl">Base URL (Jenkins 服务器地址):</label>
+    <input type="text" id="baseUrl" placeholder="http://192.168.1.104:8080">
+  </div>
+
   <div id="environments-config"></div>
 
-  <button id="save">Save</button>
+  <div class="button-group">
+    <button id="addEnv">添加环境</button>
+    <button id="save">保存配置</button>
+  </div>
   <div id="status"></div>
 
+  <script src="config.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
