@@ -7,13 +7,24 @@ let statusCheckIntervals = {};
 
 document.addEventListener('DOMContentLoaded', () => {
   loadConfig((config) => {
-    // 过滤只显示 visible 为 true 的环境
+    // 过滤只显示 visible 为 true 的环境，并按 sort 排序
     environments = {};
+    const visibleEnvs = [];
+
     for (const key in config.environments) {
       if (config.environments[key].visible !== false) {
-        environments[key] = config.environments[key];
+        visibleEnvs.push({ key, ...config.environments[key] });
       }
     }
+
+    // 按 sort 值排序
+    visibleEnvs.sort((a, b) => (a.sort || 99) - (b.sort || 99));
+
+    // 转换回对象格式
+    visibleEnvs.forEach(({ key, ...env }) => {
+      environments[key] = env;
+    });
+
     initializePopup();
   });
 });

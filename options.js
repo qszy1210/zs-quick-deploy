@@ -32,7 +32,8 @@ function save_options() {
       buildUrl: extractRelativePath(buildUrlInput.value, baseUrl),
       jobUrl: extractRelativePath(jobUrlInput.value, baseUrl),
       historyUrl: extractRelativePath(historyUrlInput.value, baseUrl),
-      visible: envElement.querySelector('#visible-' + key).checked
+      visible: envElement.querySelector('#visible-' + key).checked,
+      sort: parseInt(envElement.dataset.sort) || 99
     };
   });
 
@@ -59,22 +60,31 @@ function renderEnvironments(environments, baseUrl) {
   const container = document.getElementById('environments-config');
   container.innerHTML = '';
 
-  for (const key in environments) {
-    const env = environments[key];
-    const envContainer = createEnvironmentElement(key, env, baseUrl); // 传入 baseUrl
+  // 将对象转换为数组并按 sort 值排序
+  const sortedEnvs = Object.entries(environments)
+    .map(([key, env]) => ({ key, ...env }))
+    .sort((a, b) => (a.sort || 99) - (b.sort || 99));
+
+  sortedEnvs.forEach(({ key, ...env }) => {
+    const envContainer = createEnvironmentElement(key, env, baseUrl);
     container.appendChild(envContainer);
-  }
+  });
 }
 
 function createEnvironmentElement(key, env, baseUrl) {
   const envContainer = document.createElement('div');
   envContainer.className = 'environment';
   envContainer.dataset.key = key;
+  envContainer.dataset.sort = env.sort || 99;
 
   envContainer.innerHTML = `
     <div class="environment-header">
       <h3>${env.name} Environment</h3>
-      <button class="delete-btn" data-key="${key}">删除</button>
+      <div class="header-actions">
+        <button class="move-up-btn" data-key="${key}" title="上移">↑</button>
+        <button class="move-down-btn" data-key="${key}" title="下移">↓</button>
+        <button class="delete-btn" data-key="${key}">删除</button>
+      </div>
     </div>
     <label for="name-${key}">Name:</label>
     <input type="text" id="name-${key}" value="${env.name}">
@@ -90,6 +100,14 @@ function createEnvironmentElement(key, env, baseUrl) {
     </label>
   `;
 
+  envContainer.querySelector('.move-up-btn').addEventListener('click', () => {
+    moveEnvironment(key, 'up');
+  });
+
+  envContainer.querySelector('.move-down-btn').addEventListener('click', () => {
+    moveEnvironment(key, 'down');
+  });
+
   envContainer.querySelector('.delete-btn').addEventListener('click', () => {
     deleteEnvironment(key);
   });
@@ -102,12 +120,21 @@ function addEnvironment() {
   const baseUrl = document.getElementById('baseUrl').value.trim();
   const newKey = 'env_' + Date.now();
 
+  // 计算当前最大的 sort 值
+  const envElements = document.querySelectorAll('.environment');
+  let maxSort = 0;
+  envElements.forEach(el => {
+    const sort = parseInt(el.dataset.sort) || 0;
+    if (sort > maxSort) maxSort = sort;
+  });
+
   const newEnv = {
     name: 'New Environment',
     buildUrl: '',
     jobUrl: '',
     historyUrl: '',
-    visible: true
+    visible: true,
+    sort: maxSort + 1
   };
 
   const envContainer = createEnvironmentElement(newKey, newEnv, baseUrl);
@@ -119,6 +146,48 @@ function deleteEnvironment(key) {
   if (envElement) {
     envElement.remove();
   }
+}
+
+function moveEnvironment(key, direction) {
+  const envElements = Array.from(document.querySelectorAll('.environment'));
+  const currentIndex = envElements.findIndex(el => el.dataset.key === key);
+
+  if (currentIndex === -1) return;
+
+  let targetIndex;
+  if (direction === 'up') {
+    targetIndex = currentIndex - 1;
+    if (targetIndex < 0) return; // 已经是第一个
+  } else {
+    targetIndex = currentIndex + 1;
+    if (targetIndex >= envElements.length) return; // 已经是最后一个
+  }
+
+  // 交换 sort 值
+  const currentSort = parseInt(envElements[currentIndex].dataset.sort) || 99;
+  const targetSort = parseInt(envElements[targetIndex].dataset.sort) || 99;
+
+  envElements[currentIndex].dataset.sort = targetSort;
+  envElements[targetIndex].dataset.sort = currentSort;
+
+  // 收集所有环境数据并重新渲染
+  const container = document.getElementById('environments-config');
+  const baseUrl = document.getElementById('baseUrl').value.trim();
+  const environments = {};
+
+  envElements.forEach(el => {
+    const elKey = el.dataset.key;
+    environments[elKey] = {
+      name: el.querySelector(`#name-${elKey}`).value,
+      buildUrl: extractRelativePath(el.querySelector(`#buildUrl-${elKey}`).value, baseUrl),
+      jobUrl: extractRelativePath(el.querySelector(`#jobUrl-${elKey}`).value, baseUrl),
+      historyUrl: extractRelativePath(el.querySelector(`#historyUrl-${elKey}`).value, baseUrl),
+      visible: el.querySelector(`#visible-${elKey}`).checked,
+      sort: parseInt(el.dataset.sort) || 99
+    };
+  });
+
+  renderEnvironments(environments, baseUrl);
 }
 
 document.addEventListener('DOMContentLoaded', restore_options);
