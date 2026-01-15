@@ -27,6 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializePopup();
   });
+
+  // 添加设置按钮事件
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      chrome.runtime.openOptionsPage();
+    });
+  }
 });
 
 document.addEventListener('visibilitychange', () => {

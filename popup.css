@@ -97,3 +97,24 @@ body {
     color: #718096;
     margin-top: 4px;
 }
+
+.settings-button {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: background-color 0.2s;
+}
+
+.settings-button:hover {
+    background-color: #5a6268;
+}
