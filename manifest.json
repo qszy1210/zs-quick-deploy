@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Jenkins Build Trigger",
-  "version": "1.0",
+  "version": "1.1",
   "description": "一键触发Jenkins构建",
   "permissions": ["activeTab", "scripting", "tabs", "storage"],
   "options_ui": {
@@ -15,7 +15,8 @@
     "service_worker": "background.js"
   },
   "host_permissions": [
-    "http://192.168.1.104:8080/*"
+    "http://*/*",
+    "https://*/*"
   ],
   "commands": {
     "_execute_action": {
