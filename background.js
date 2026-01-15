@@ -1,27 +1,16 @@
 
-// Default settings, used if nothing is found in storage
-const defaultEnvironments = {
-  dev: {
-    name: 'Dev',
-    buildUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/build?delay=0sec',
-    jobUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/',
-    historyUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6/job/znjz-zssy-portal-web-vue3-dev/buildHistory/ajax'
-  },
-  test: {
-    name: 'Test',
-    buildUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83/job/zssy-bft-web-test/build?delay=0sec',
-    jobUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83/job/zssy-bft-web-test/',
-    historyUrl: 'http://192.168.1.104:8080/view/%E6%99%BA%E8%83%BD%E8%AE%B0%E8%B4%A6%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83/job/zssy-bft-web-test/buildHistory/ajax'
-  }
-};
+// Import shared configuration
+importScripts('config.js');
 
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'trigger-build') {
-    // Load config from storage, then trigger build for 'dev' environment
-    chrome.storage.sync.get({ environments: defaultEnvironments }, (items) => {
-      const devConfig = items.environments.dev;
+    loadConfig((config) => {
+      const devConfig = config.environments.dev;
       if (devConfig) {
         handleBuildTrigger(devConfig);
+        console.log('Dev environment build triggered via shortcut');
+      } else {
+        console.error('Dev environment configuration not found');
       }
     });
   }
@@ -29,17 +18,29 @@ chrome.commands.onCommand.addListener((command) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'triggerBuild') {
-    const envKey = message.environment || 'dev';
-    const environments = message.environments;
-    const envConfig = environments[envKey];
-    if (envConfig) {
-      handleBuildTrigger(envConfig);
-      sendResponse({ status: 'started' });
-    } else {
-      sendResponse({ status: 'error', message: 'Invalid environment configuration.' });
-    }
+    loadConfig((config) => {
+      try {
+        // 添加 config 空值检查
+        if (!config || !config.environments) {
+          console.error('Failed to load configuration');
+          sendResponse({ status: 'error', message: 'Failed to load configuration' });
+          return;
+        }
+
+        const envKey = message.environment || 'dev';
+        const envConfig = config.environments[envKey];
+        if (envConfig) {
+          handleBuildTrigger(envConfig);
+          sendResponse({ status: 'started' });
+        } else {
+          sendResponse({ status: 'error', message: 'Invalid environment configuration.' });
+        }
+      } catch (error) {
+        sendResponse({ status: 'error', message: error.message });
+      }
+    });
+    return true;
   }
-  return true; // Indicates an asynchronous response
 });
 
 async function handleBuildTrigger(envConfig) {
@@ -65,11 +66,41 @@ async function handleBuildTrigger(envConfig) {
 
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: () => {
-        // This function is executed in the context of the Jenkins page
-        const button = document.querySelector('#yui-gen1-button');
-        if (button) button.click();
-      }
+      func: (buildUrl) => {
+        // 智能检测构建按钮
+        let button = null;
+
+        // 策略1: 如果 URL 包含 /build，尝试查找特定的按钮 ID
+        if (buildUrl && buildUrl.includes('/build')) {
+          button = document.querySelector('#yui-gen1-button');
+        }
+
+        // 策略2: 如果找不到，查找包含"立即构建"文本的链接
+        if (!button) {
+          const links = document.querySelectorAll('a');
+          for (const link of links) {
+            if (link.textContent.trim() === '立即构建') {
+              button = link;
+              break;
+            }
+          }
+        }
+
+        // 策略3: 查找通用的构建按钮选择器
+        if (!button) {
+          button = document.querySelector('a[href*="build"]') ||
+                   document.querySelector('button[type="submit"]') ||
+                   document.querySelector('.build-button');
+        }
+
+        if (button) {
+          button.click();
+          console.log('Build button clicked successfully');
+        } else {
+          console.error('No build button found on page');
+        }
+      },
+      args: [envConfig.buildUrl]
     });
 
     // Close the tab after a short delay
